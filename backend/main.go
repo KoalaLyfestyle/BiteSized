@@ -18,7 +18,7 @@ func main() {
 	// utils.ExecuteSQLFile("sql/3-PopulateData.sql")
 
 	// Register routes
-	routes.RegisterRoutes()
+	routes.RegisterRecipeRoutes()
 
 	// Start the server
 	fmt.Println("Server running on http://localhost:8080")
