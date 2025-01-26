@@ -4,11 +4,12 @@ import { ThemeProvider } from '@mui/material/styles';
 import Header from '../components/Header';
 import ThreadCard from '../components/ThreadCard';
 import theme from '../styles/theme';
+import { Item } from '../types/types';
 
 const Threads = () => {
   const [search, setSearch] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const threads = [
+  const threads: Item[] = [
     {
       id: 1,
       title: "Sample Thread Title 1",
