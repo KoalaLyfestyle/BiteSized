@@ -1,5 +1,6 @@
 # BiteSized
 Submission for CVWO AY2024/25 - Gossip with Go/Rails
+
 Winston Ho Rui Wei
 
 ## Setup Instructions
@@ -24,6 +25,8 @@ Winston Ho Rui Wei
    ```
 9.  Start frontend server with `yarn start`, the server should open `app.tsx` in your browser at http://localhost:3000/
 10. Start storybook to view components/pages with `npm run storybook`, storybook should open in your browser at http://localhost:6006/
+
+<br>
 
 This web forum is still in development. Current progress is as follows:
 
@@ -64,3 +67,6 @@ This web forum is still in development. Current progress is as follows:
 - [ ] Profile Improvements
   - [ ] Profile Pictures
   - [ ] Pinned Recipes/Threads on profile
+
+### Logo Credits
+The BiteSized logo was created using OpenAI's DALL·E, an AI-based image generation tool.
