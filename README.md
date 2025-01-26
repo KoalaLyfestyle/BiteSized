@@ -68,5 +68,60 @@ This web forum is still in development. Current progress is as follows:
   - [ ] Profile Pictures
   - [ ] Pinned Recipes/Threads on profile
 
-### Logo Credits
+## File Structure
+
+### Overall
+
+```
+BiteSized/
+├── frontend/                   # Frontend files
+├── backend/                    # Backend files
+├── README.md                   # This file
+├── .gitignore                  # Files to ignore in version control
+└── .gitattributes              # Git attributes for file paths
+```
+
+### Backend
+
+```
+backend/
+├── config/                     # Configuration files
+├── controllers/                # Handles API logic
+├── models/                     # Models for database tables
+├── routes/                     # API route handlers
+├── sql/                        # SQL-related files
+├── utils/                      # Utility functions/helpers
+├── main.go                     # Entry point for the application
+├── go.mod                      # Go module file
+├── go.sum                      # Go dependencies
+└── .env                        # Environment variables
+
+```
+
+### Frontend
+
+```
+frontend/
+├── public/                       # Public assets (served directly)
+├── src/                          # Main source code
+│   ├── assets/                   # Static assets (images, icons, etc.)
+│   ├── components/               # Reusable components
+│   │   └── stories/              # Subfolder for stories (Storybook)
+│   ├── pages/                    # Page-level components (screens)
+│   │   └── stories/              # Subfolder for stories (Storybook)
+│   ├── services/                 # API interactions
+│   ├── styles/                   # Custom styles
+│   ├── utils/                    # Utility/helper functions
+│   ├── App.tsx                   # Main app component (routes and layout)
+│   ├── AppRoutes.tsx             # App routes (defined with react-router)
+│   ├── index.tsx                 # App entry point
+│   └── react-app-env.d.ts        # React environment types
+├── .env                          # Environment variables
+├── package.json                  # Project dependencies and scripts
+├── tsconfig.json                 # TypeScript configuration
+├── yarn.lock                     # Yarn lockfile for dependencies
+└── README.md                     # Reach and Yarn quickstart guide
+```
+
+## Logo Credits
 The BiteSized logo was created using OpenAI's DALL·E, an AI-based image generation tool.
