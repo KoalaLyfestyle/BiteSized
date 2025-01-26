@@ -30,7 +30,7 @@ Winston Ho Rui Wei
 
 This web forum is still in development. Current progress is as follows:
 
-### Completed
+### Requirements
 
 - [x] Database
   - [x] Database Schema
@@ -99,6 +99,8 @@ backend/
 ```
 
 ### Frontend
+
+*Note: not all files have been written/are complete, but this is the planned structure*
 
 ```
 frontend/
