@@ -5,26 +5,41 @@ Winston Ho Rui Wei
 
 ## Setup Instructions
 
-1. Clone the repository
-2. Ensure that MySQL, yarn, React and Go are installed
-3. Run the scripts (3 is optional) in `./Bitesized/backend/sql/`
-4. In the backend directory, run `go mod tidy` or `go mod download` to install necessary dependencies
-5. Create `.env` file in `.Bitesized/backend/.env` with database details:
+1. Clone the repository.
+2. Install MySQL (or MariaDB), Go, Node.js, and yarn.
+3. Create an empty database and a user that can use it.
+4. Create `backend/.env` with the database details (or set the same variables in your shell):
     ```
     DB_USER=xxxxxxxxxxx
     DB_PASSWORD=xxxxxxx
-    DB_HOST=xxxxxxxxxxx
-    DB_PORT=xxxxxxxxxxx
-    DB_NAME=xxxxxxxxxxx 
+    DB_HOST=127.0.0.1
+    DB_PORT=3306
+    DB_NAME=bitesized
     ```
-6. Start backened server with `go run main.go`, the server should run on http://localhost:8080
-7. In the frontend directory, run `yarn install` to install necessary dependencies
-8. Create `.env` file in `.Bitesized/frontend/.env` with the backend API url, e.g.:
-   ```
-   REACT_APP_API_URL=http://localhost:8080/api
-   ```
-9.  Start frontend server with `yarn start`, the server should open `app.tsx` in your browser at http://localhost:3000/
-10. Start storybook to view components/pages with `npm run storybook`, storybook should open in your browser at http://localhost:6006/
+5. In `backend/`, run `go mod download`, then `go run . -setup-db`. This creates the tables from `backend/sql/1-schema.sql` and loads the sample recipes from `backend/sql/2-seed.sql`. Sample recipes are titled `[Sample] ...`. Both scripts are safe to run again.
+6. Start the backend with `go run .`. It serves the API on http://localhost:8080.
+    - By default the API is **read-only**: every write returns 403. There is no login yet, so this is the safe default for a shared demo.
+    - To add recipes on your own machine, start it with `AUTHORING_ENABLED=true go run .`. New recipes are saved as the demo user (id 1), or as `AUTHOR_USER_ID` if set. The API never takes the author from the request.
+7. In `frontend/`, run `yarn install`, then `yarn start`. The app opens at http://localhost:3000/ and reaches the API through the dev server proxy (`"proxy"` in `package.json`), so no `frontend/.env` is needed. Set `REACT_APP_API_URL` only if the API is served elsewhere.
+8. Start storybook to view components/pages with `yarn storybook`, storybook should open in your browser at http://localhost:6006/
+
+### Recipe API
+
+| Method and path | What it does |
+|---|---|
+| `GET /api/recipes` | All recipes, newest first. `[]` when there are none. |
+| `GET /api/recipes/{id}` | One recipe, or 404. |
+| `POST /api/recipes` | Create. Body: `title` (required, up to 200 characters), `content` (optional, up to 2,000), `ingredients` and `steps` (required, one item per line). Unknown fields such as `user_id` are rejected. Returns 201 with the recipe, 400 with `{"error", "fields"}` when invalid, or 403 when read-only. |
+| `PUT /api/recipes/{id}`, `DELETE /api/recipes/{id}` | Update or delete. Same rules as create. |
+| `GET /api/config` | `{"authoring": true or false}`. |
+
+Errors are JSON: `{"error": "...", "fields": {"title": "is required"}}`.
+
+### Tests
+
+- Backend: `cd backend && go test ./...`
+- Backend against a real database: `cd backend && DB_USER=... DB_PASSWORD=... DB_HOST=127.0.0.1 DB_PORT=3306 go test -tags integration ./routes/`. It creates and drops its own `bitesized_test` database.
+- Frontend: `cd frontend && CI=true yarn test`
 
 <br>
 
@@ -58,6 +73,7 @@ This web forum is still in development. Current progress is as follows:
     - [ ] Profile Page
     - [ ] Log In / Sign Up Page
   - [ ] Link pages to backend API
+    - [x] Recipe list, recipe page, and post recipe form
 
 ### Possible Future Optimizations
 - [ ] Search Engine Improvements
