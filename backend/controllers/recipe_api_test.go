@@ -96,12 +96,21 @@ func TestGetRecipe(t *testing.T) {
 	})
 }
 
-func TestCreateRecipeIsBlockedWhenReadOnly(t *testing.T) {
+func TestRecipeWritesAreBlockedWhenReadOnly(t *testing.T) {
 	t.Setenv("AUTHORING_ENABLED", "")
-	withMockDB(t) // no queries expected
-	rec := do(RecipesCollection, http.MethodPost, "/api/recipes", validRecipe)
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403, got %d %q", rec.Code, rec.Body.String())
+	for _, c := range []struct {
+		handler      http.HandlerFunc
+		method, path string
+	}{
+		{RecipesCollection, http.MethodPost, "/api/recipes"},
+		{RecipeItem, http.MethodPut, "/api/recipes/1"},
+		{RecipeItem, http.MethodDelete, "/api/recipes/1"},
+	} {
+		withMockDB(t) // no queries expected
+		rec := do(c.handler, c.method, c.path, validRecipe)
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("%s %s: expected 403, got %d %q", c.method, c.path, rec.Code, rec.Body.String())
+		}
 	}
 }
 
@@ -114,6 +123,7 @@ func TestCreateRecipeRejectsInvalidInput(t *testing.T) {
 		{"blank title", `{"title":"   ","ingredients":"a","steps":"b"}`, "title", "is required"},
 		{"missing steps", `{"title":"x","ingredients":"a"}`, "steps", "is required"},
 		{"long title", `{"title":"` + strings.Repeat("t", 201) + `","ingredients":"a","steps":"b"}`, "title", "at most 200"},
+		{"trailing data", validRecipe + ` {"title":"again"}`, "", "single JSON object"},
 		{"client user id", `{"title":"x","ingredients":"a","steps":"b","user_id":5}`, "", `unknown field "user_id"`},
 	}
 	for _, c := range cases {

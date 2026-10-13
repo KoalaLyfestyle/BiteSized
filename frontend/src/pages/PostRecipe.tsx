@@ -25,11 +25,16 @@ useEffect(() => {
 
 const handleSubmit = async () => {
     // Ingredients and steps are stored one per line.
+    // Keep an item that was typed but not added yet.
+    const allIngredients = ingredient.trim() ? [...ingredients, ingredient.trim()] : ingredients;
+    const allSteps = step.trim() ? [...steps, step.trim()] : steps;
+    if (allIngredients !== ingredients) { setIngredients(allIngredients); setIngredient(''); }
+    if (allSteps !== steps) { setSteps(allSteps); setStep(''); }
     const input: RecipeInput = {
     title,
     content: description,
-    ingredients: ingredients.join('\n'),
-    steps: steps.join('\n'),
+    ingredients: allIngredients.join('\n'),
+    steps: allSteps.join('\n'),
     };
     const found = validateRecipe(input);
     setErrors(found);

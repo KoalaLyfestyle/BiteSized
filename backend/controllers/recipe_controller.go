@@ -21,7 +21,7 @@ const (
 	maxContent     = 2000
 	maxIngredients = 5000
 	maxSteps       = 10000
-	maxRecipeBody  = 64 << 10
+	maxRecipeBody  = 256 << 10
 )
 
 // RecipeInput is what a client may send to create or update a recipe. It has
@@ -148,6 +148,10 @@ func readRecipeInput(w http.ResponseWriter, r *http.Request) (RecipeInput, bool)
 			msg = strings.TrimPrefix(err.Error(), "json: ") + "; the author is set by the server"
 		}
 		writeError(w, http.StatusBadRequest, msg)
+		return in, false
+	}
+	if dec.More() {
+		writeError(w, http.StatusBadRequest, "request body must hold a single JSON object")
 		return in, false
 	}
 	if errs := in.Validate(); len(errs) > 0 {

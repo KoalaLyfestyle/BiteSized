@@ -89,6 +89,24 @@ test('detail page handles a missing recipe', async () => {
   expect(await screen.findByText('This recipe does not exist.')).toBeInTheDocument();
 });
 
+test('switching recipes ignores a late reply for the old one', async () => {
+  goTo('#/recipes/1');
+  let releaseFirst: () => void = () => {};
+  mockFetch((url) => {
+    if (url === '/api/recipes/1') {
+      return new Promise((resolve) => {
+        releaseFirst = () => resolve({ status: 200, body: sample });
+      }) as never;
+    }
+    return { status: 200, body: { ...sample, id: 2, title: 'Second' } };
+  });
+  render(<App />);
+  act(() => goTo('#/recipes/2'));
+  expect(await screen.findByRole('heading', { name: 'Second' })).toBeInTheDocument();
+  await act(async () => releaseFirst());
+  expect(screen.getByRole('heading', { name: 'Second' })).toBeInTheDocument();
+});
+
 describe('create form', () => {
   beforeEach(() => goTo('#/recipes/new'));
 
@@ -140,6 +158,24 @@ describe('create form', () => {
       steps: 'Toast it',
     });
     await waitFor(() => expect(window.location.hash).toBe('#/recipes/5'));
+  });
+
+  test('keeps an ingredient and step that were typed but not added', async () => {
+    const fetch = mockFetch((url, init) => {
+      if (url === '/api/config') return { status: 200, body: { authoring: true } };
+      return { status: 201, body: { ...sample, id: 6 } };
+    });
+    render(<App />);
+    const post = await screen.findByRole('button', { name: 'Post Recipe' });
+    await waitFor(() => expect(post).toBeEnabled());
+    fireEvent.change(screen.getByLabelText(/Recipe Title/), { target: { value: 'Tea' } });
+    fireEvent.change(screen.getByLabelText('Ingredient'), { target: { value: 'tea leaves' } });
+    fireEvent.change(screen.getByLabelText('Steps'), { target: { value: 'Steep' } });
+    await act(async () => {
+      fireEvent.click(post);
+    });
+    const call = fetch.mock.calls.find(([, init]) => init?.method === 'POST')!;
+    expect(JSON.parse(String(call[1]!.body))).toMatchObject({ ingredients: 'tea leaves', steps: 'Steep' });
   });
 
   test('shows the server error for a rejected recipe', async () => {

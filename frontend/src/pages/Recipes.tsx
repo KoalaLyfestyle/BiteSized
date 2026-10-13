@@ -12,14 +12,21 @@ const Recipes = () => {
   const [search, setSearch] = useState('');
   const [state, setState] = useState<State>({ status: 'loading' });
 
-  const load = useCallback(() => {
+  const load = useCallback((isActive: () => boolean = () => true) => {
     setState({ status: 'loading' });
     listRecipes()
-      .then((recipes) => setState({ status: 'ready', recipes: recipes ?? [] }))
-      .catch((err: Error) => setState({ status: 'error', message: err.message }));
+      .then((recipes) => isActive() && setState({ status: 'ready', recipes: recipes ?? [] }))
+      .catch((err: Error) => isActive() && setState({ status: 'error', message: err.message }));
   }, []);
 
-  useEffect(load, [load]);
+  useEffect(() => {
+    let active = true;
+    load(() => active);
+    // Ignore a late reply after leaving the page or switching recipes.
+    return () => {
+      active = false;
+    };
+  }, [load]);
 
   let body: React.ReactNode;
   if (state.status === 'loading') {
@@ -33,7 +40,7 @@ const Recipes = () => {
       <Alert
         severity="error"
         action={
-          <Button color="inherit" size="small" onClick={load}>
+          <Button color="inherit" size="small" onClick={() => load()}>
             Retry
           </Button>
         }

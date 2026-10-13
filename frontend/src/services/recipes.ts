@@ -72,7 +72,8 @@ export function validateRecipe(input: RecipeInput): FieldErrors {
   const check = (field: keyof RecipeInput, required: boolean) => {
     const value = input[field].trim();
     if (required && !value) errors[field] = 'is required';
-    else if (value.length > LIMITS[field]) errors[field] = `must be at most ${LIMITS[field]} characters`;
+    // Count characters the way the Go backend counts runes, not UTF-16 units.
+    else if (Array.from(value).length > LIMITS[field]) errors[field] = `must be at most ${LIMITS[field]} characters`;
   };
   check('title', true);
   check('content', false);

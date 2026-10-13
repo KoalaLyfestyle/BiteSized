@@ -10,16 +10,28 @@ type State =
 const RecipeDetail = ({ id }: { id: number }) => {
   const [state, setState] = useState<State>({ status: 'loading' });
 
-  const load = useCallback(() => {
-    setState({ status: 'loading' });
-    getRecipe(id)
-      .then((recipe) => setState({ status: 'ready', recipe }))
-      .catch((err: Error) =>
-        setState({ status: 'error', message: err.message, notFound: err instanceof ApiError && err.status === 404 }),
-      );
-  }, [id]);
+  const load = useCallback(
+    (isActive: () => boolean = () => true) => {
+      setState({ status: 'loading' });
+      getRecipe(id)
+        .then((recipe) => isActive() && setState({ status: 'ready', recipe }))
+        .catch(
+          (err: Error) =>
+            isActive() &&
+            setState({ status: 'error', message: err.message, notFound: err instanceof ApiError && err.status === 404 }),
+        );
+    },
+    [id],
+  );
 
-  useEffect(load, [load]);
+  useEffect(() => {
+    let active = true;
+    load(() => active);
+    // Ignore a late reply after leaving the page or switching recipes.
+    return () => {
+      active = false;
+    };
+  }, [load]);
 
   let body: React.ReactNode;
   if (state.status === 'loading') {
@@ -31,7 +43,7 @@ const RecipeDetail = ({ id }: { id: number }) => {
       <Alert
         severity="error"
         action={
-          <Button color="inherit" size="small" onClick={load}>
+          <Button color="inherit" size="small" onClick={() => load()}>
             Retry
           </Button>
         }
