@@ -6,7 +6,7 @@ import (
 )
 
 func RegisterThreadRoutes() {
-	http.HandleFunc("/threads", controllers.GetThreads)   // GET all threads
-	http.HandleFunc("/thread", controllers.CreateThread)  // POST a new thread
-	http.HandleFunc("/thread/", controllers.HandleThread) // PUT (update) and DELETE a thread
+	http.HandleFunc("/threads", readOnlyUnlessAuthoring(controllers.GetThreads))   // GET all threads
+	http.HandleFunc("/thread", readOnlyUnlessAuthoring(controllers.CreateThread))  // POST a new thread
+	http.HandleFunc("/thread/", readOnlyUnlessAuthoring(controllers.HandleThread)) // PUT (update) and DELETE a thread
 }

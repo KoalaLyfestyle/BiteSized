@@ -12,18 +12,25 @@ import (
 )
 
 func GetUsers(w http.ResponseWriter, r *http.Request) {
-	rows, err := config.DB.Query("SELECT id, username, pass_hash, created_at FROM users")
+	rows, err := config.DB.Query("SELECT id, username, created_at FROM users")
 	if err != nil {
 		http.Error(w, "Failed to fetch users", http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	var users []models.User
+	users := []models.User{}
 	for rows.Next() {
 		var user models.User
-		rows.Scan(&user.ID, &user.Username, &user.PassHash, &user.CreatedAt)
+		if err := rows.Scan(&user.ID, &user.Username, &user.CreatedAt); err != nil {
+			http.Error(w, "Failed to fetch users", http.StatusInternalServerError)
+			return
+		}
 		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		http.Error(w, "Failed to fetch users", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -51,7 +58,8 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	user.CreatedAt = time.Now()
 
-	_, err = config.DB.Exec("INSERT INTO users (username, pass_hash, created_at) VALUES (?, ?, ?)", user.Username, user.PassHash, user.CreatedAt)
+	// There is no login yet, so new users get '!' as pass_hash, which no password matches.
+	_, err = config.DB.Exec("INSERT INTO users (username, pass_hash, created_at) VALUES (?, ?, ?)", user.Username, "!", user.CreatedAt)
 	if err != nil {
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		return
@@ -90,7 +98,8 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	json.Unmarshal(body, &user)
 
-	_, err := config.DB.Exec("UPDATE users SET username = ?, pass_hash = ? WHERE id = ?", user.Username, user.PassHash, id)
+	// pass_hash is never read from clients, so leave the stored one alone.
+	_, err := config.DB.Exec("UPDATE users SET username = ? WHERE id = ?", user.Username, id)
 	if err != nil {
 		http.Error(w, "Failed to update user", http.StatusInternalServerError)
 		return
