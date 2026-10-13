@@ -21,8 +21,15 @@ func GetRecipes(w http.ResponseWriter, r *http.Request) {
 	var recipes []models.Recipe
 	for rows.Next() {
 		var recipe models.Recipe
-		rows.Scan(&recipe.ID, &recipe.Title, &recipe.Ingredients, &recipe.Steps)
+		if err := rows.Scan(&recipe.ID, &recipe.Title, &recipe.Content, &recipe.Ingredients, &recipe.Steps); err != nil {
+			http.Error(w, "Failed to fetch recipes", http.StatusInternalServerError)
+			return
+		}
 		recipes = append(recipes, recipe)
+	}
+	if err := rows.Err(); err != nil {
+		http.Error(w, "Failed to fetch recipes", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
