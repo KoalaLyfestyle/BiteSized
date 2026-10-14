@@ -163,7 +163,7 @@ func readRecipeInput(w http.ResponseWriter, r *http.Request) (RecipeInput, bool)
 
 func requireAuthoring(w http.ResponseWriter) bool {
 	if !config.AuthoringEnabled() {
-		writeError(w, http.StatusForbidden, "this demo is read-only; set AUTHORING_ENABLED=true to add recipes locally")
+		writeError(w, http.StatusForbidden, "this demo is read-only; set AUTHORING_ENABLED=true to write locally")
 		return false
 	}
 	return true

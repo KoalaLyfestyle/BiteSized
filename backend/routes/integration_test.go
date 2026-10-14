@@ -125,9 +125,18 @@ func TestRecipesAgainstDatabase(t *testing.T) {
 	if len(threads) != 1 || threads[0]["user_id"] != float64(1) {
 		t.Fatalf("expected the stored thread with the server author, got %v", threads)
 	}
-	req, _ := http.NewRequest(http.MethodDelete, srv.URL+"/thread/999", nil)
-	if res, err := http.DefaultClient.Do(req); err != nil || res.StatusCode != http.StatusNotFound {
-		t.Fatalf("expected 404 deleting a missing thread, got %v %v", res, err)
+	// An update that changes nothing still finds the thread (MySQL reports 0
+	// affected rows); a missing thread is 404.
+	id := int(thread["id"].(float64))
+	same := `{"title":"Best toast?","content":"Butter first?"}`
+	if code := send(t, http.MethodPut, fmt.Sprintf("%s/thread/%d", srv.URL, id), same); code != http.StatusOK {
+		t.Fatalf("expected 200 for an unchanged update, got %d", code)
+	}
+	if code := send(t, http.MethodPut, srv.URL+"/thread/999", same); code != http.StatusNotFound {
+		t.Fatalf("expected 404 updating a missing thread, got %d", code)
+	}
+	if code := send(t, http.MethodDelete, srv.URL+"/thread/999", ""); code != http.StatusNotFound {
+		t.Fatalf("expected 404 deleting a missing thread, got %d", code)
 	}
 
 	// Users never carry password hashes.
@@ -182,4 +191,19 @@ func post(t *testing.T, url, body string, status int, out any) {
 			t.Fatalf("POST %s: %v", url, err)
 		}
 	}
+}
+
+// send makes a request and returns its status code.
+func send(t *testing.T, method, url, body string) int {
+	t.Helper()
+	req, err := http.NewRequest(method, url, strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	return res.StatusCode
 }
