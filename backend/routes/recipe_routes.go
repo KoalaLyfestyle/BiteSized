@@ -6,7 +6,7 @@ import (
 )
 
 func RegisterRecipeRoutes() {
-	http.HandleFunc("/recipes", controllers.GetRecipes)   // GET all recipes
-	http.HandleFunc("/recipe", controllers.CreateRecipe)  // POST a new recipe
-	http.HandleFunc("/recipe/", controllers.HandleRecipe) // PUT (update) and DELETE a recipe
+	http.HandleFunc("/api/recipes", controllers.RecipesCollection) // GET list, POST create
+	http.HandleFunc("/api/recipes/", controllers.RecipeItem)       // GET, PUT, DELETE one recipe
+	http.HandleFunc("/api/config", controllers.GetAppConfig)       // GET {"authoring": bool}
 }

@@ -8,9 +8,14 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 )
+
+var recipeCols = []string{"id", "title", "content", "ingredients", "steps", "user_id", "created_at"}
+
+const listQuery = "SELECT id, title, content, ingredients, steps, user_id, created_at FROM recipes ORDER BY created_at DESC, id DESC"
 
 func TestGetRecipes_ReturnsInternalServerErrorOnRowFailures(t *testing.T) {
 	originalDB := config.DB
@@ -26,12 +31,12 @@ func TestGetRecipes_ReturnsInternalServerErrorOnRowFailures(t *testing.T) {
 		defer db.Close()
 		config.DB = db
 
-		rows := sqlmock.NewRows([]string{"id", "title", "content", "ingredients", "steps"}).
-			AddRow("not-an-int", "Title", "Content", "Ingredients", "Steps")
-		mock.ExpectQuery(regexp.QuoteMeta("SELECT id, title, content, ingredients, steps FROM recipes")).
+		rows := sqlmock.NewRows(recipeCols).
+			AddRow("not-an-int", "Title", "Content", "Ingredients", "Steps", 1, time.Now())
+		mock.ExpectQuery(regexp.QuoteMeta(listQuery)).
 			WillReturnRows(rows)
 
-		req := httptest.NewRequest(http.MethodGet, "/recipes", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/recipes", nil)
 		rec := httptest.NewRecorder()
 		GetRecipes(rec, req)
 
@@ -54,14 +59,14 @@ func TestGetRecipes_ReturnsInternalServerErrorOnRowFailures(t *testing.T) {
 		defer db.Close()
 		config.DB = db
 
-		rows := sqlmock.NewRows([]string{"id", "title", "content", "ingredients", "steps"}).
-			AddRow(1, "Title", "Content", "Ingredients", "Steps").
-			AddRow(2, "Title 2", "Content 2", "Ingredients 2", "Steps 2")
+		rows := sqlmock.NewRows(recipeCols).
+			AddRow(1, "Title", "Content", "Ingredients", "Steps", 1, time.Now()).
+			AddRow(2, "Title 2", "Content 2", "Ingredients 2", "Steps 2", 1, time.Now())
 		rows.RowError(1, errors.New("row iteration error"))
-		mock.ExpectQuery(regexp.QuoteMeta("SELECT id, title, content, ingredients, steps FROM recipes")).
+		mock.ExpectQuery(regexp.QuoteMeta(listQuery)).
 			WillReturnRows(rows)
 
-		req := httptest.NewRequest(http.MethodGet, "/recipes", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/recipes", nil)
 		rec := httptest.NewRecorder()
 		GetRecipes(rec, req)
 

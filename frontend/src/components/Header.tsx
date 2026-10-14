@@ -11,7 +11,8 @@ const Header: React.FC = () => {
           BiteSized
         </Typography>
         <Button color="inherit">Home</Button>
-        <Button color="inherit">Recipes</Button>
+        <Button color="inherit" href="#/recipes">Recipes</Button>
+        <Button color="inherit" href="#/recipes/new">Add recipe</Button>
         <Button color="inherit">Threads</Button>
         <Button color="inherit">Profile</Button>
       </Toolbar>

@@ -6,7 +6,7 @@ import (
 )
 
 func RegisterUserRoutes() {
-	http.HandleFunc("/users", controllers.GetUsers)   // GET all users
-	http.HandleFunc("/user", controllers.CreateUser)  // POST a new user
-	http.HandleFunc("/user/", controllers.HandleUser) // PUT (update) and DELETE a user
+	http.HandleFunc("/users", readOnlyUnlessAuthoring(controllers.GetUsers))   // GET all users
+	http.HandleFunc("/user", readOnlyUnlessAuthoring(controllers.CreateUser))  // POST a new user
+	http.HandleFunc("/user/", readOnlyUnlessAuthoring(controllers.HandleUser)) // PUT (update) and DELETE a user
 }

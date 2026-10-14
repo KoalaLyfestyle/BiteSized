@@ -1,71 +1,100 @@
-import React, { useState } from 'react';
-import { Box, TextField, Grid, Autocomplete } from '@mui/material';
-import { ThemeProvider } from '@mui/material/styles';
-import Header from '../components/Header';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, Box, Button, CircularProgress, Grid, TextField, Typography } from '@mui/material';
 import RecipeCard from '../components/RecipeCard';
-import theme from '../styles/theme';
-import { Item } from '../types/types';
+import { ApiRecipe, listRecipes, splitLines } from '../services/recipes';
+
+type State =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'ready'; recipes: ApiRecipe[] };
 
 const Recipes = () => {
   const [search, setSearch] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const recipes: Item[] = [
-    {
-      id: 1,
-      title: "Sample Recipe Title 1",
-      content: "This is a sample content for the recipe.",
-      ingredients: "Sample ingredients",
-      steps: "Sample steps",
-      userId: 123,
-      createdAt: new Date().toISOString(),
-      tags: ["Breakfast", "Healthy"]
-    },
-    {
-      id: 2,
-      title: "Sample Recipe Title 2",
-      content: "This is a sample content for the recipe.",
-      ingredients: "Sample ingredients",
-      steps: "Sample steps",
-      userId: 123,
-      createdAt: new Date().toISOString(),
-      tags: ["Lunch", "Quick"]
-    }
-    // ... more sample recipes
-  ];
+  const [state, setState] = useState<State>({ status: 'loading' });
 
-  const filteredRecipes = recipes.filter(recipe =>
-    recipe.title.toLowerCase().includes(search.toLowerCase()) &&
-    (selectedTags.length === 0 || selectedTags.some(tag => recipe.tags.includes(tag)))
-  );
+  const load = useCallback((isActive: () => boolean = () => true) => {
+    setState({ status: 'loading' });
+    listRecipes()
+      .then((recipes) => isActive() && setState({ status: 'ready', recipes: recipes ?? [] }))
+      .catch((err: Error) => isActive() && setState({ status: 'error', message: err.message }));
+  }, []);
 
-  return (
-    <ThemeProvider theme={theme}>
-      <Header />
-      <Box sx={{ p: 3, maxWidth: 1200, mx: "auto" }}>
-        <TextField
-          label="Search Recipes"
-          fullWidth
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          sx={{ mb: 3 }}
-        />
-        <Autocomplete
-          multiple
-          options={["Breakfast", "Lunch", "Dinner", "Dessert", "Snack", "Healthy", "Quick"]}
-          value={selectedTags}
-          onChange={(e, newValue) => setSelectedTags(newValue)}
-          renderInput={(params) => <TextField {...params} label="Filter by Tags" />}
-          sx={{ mb: 3 }}
-        />
+  useEffect(() => {
+    let active = true;
+    load(() => active);
+    // Ignore a late reply after leaving the page or switching recipes.
+    return () => {
+      active = false;
+    };
+  }, [load]);
+
+  let body: React.ReactNode;
+  if (state.status === 'loading') {
+    body = (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+        <CircularProgress aria-label="Loading recipes" />
+      </Box>
+    );
+  } else if (state.status === 'error') {
+    body = (
+      <Alert
+        severity="error"
+        action={
+          <Button color="inherit" size="small" onClick={() => load()}>
+            Retry
+          </Button>
+        }
+      >
+        Could not load recipes: {state.message}
+      </Alert>
+    );
+  } else if (state.recipes.length === 0) {
+    body = (
+      <Box sx={{ textAlign: 'center', p: 4 }}>
+        <Typography variant="h6">No recipes yet</Typography>
+        <Typography color="textSecondary">
+          Run <code>go run . -setup-db</code> in the backend to load sample recipes, or{' '}
+          <a href="#/recipes/new">add your own</a>.
+        </Typography>
+      </Box>
+    );
+  } else {
+    const query = search.trim().toLowerCase();
+    const shown = state.recipes.filter((r) => r.title.toLowerCase().includes(query));
+    body =
+      shown.length === 0 ? (
+        <Typography color="textSecondary">No recipes match "{search}".</Typography>
+      ) : (
         <Grid container spacing={3}>
-          {filteredRecipes.map(recipe => (
-            <Grid item xs={12} sm={6} md={4} key={recipe.id}>
-              <RecipeCard {...recipe} />
+          {shown.map((r) => (
+            <Grid item xs={12} sm={6} md={4} key={r.id}>
+              <RecipeCard
+                id={r.id}
+                title={r.title}
+                content={r.content}
+                ingredients={splitLines(r.ingredients).join(', ')}
+                steps={`${splitLines(r.steps).length} steps`}
+                userId={r.user_id}
+                createdAt={r.created_at}
+                href={`#/recipes/${r.id}`}
+              />
             </Grid>
           ))}
         </Grid>
-      </Box>
-    </ThemeProvider>
+      );
+  }
+
+  return (
+    <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
+      <TextField
+        label="Search Recipes"
+        fullWidth
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        sx={{ mb: 3 }}
+      />
+      {body}
+    </Box>
   );
 };
 

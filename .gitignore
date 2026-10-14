@@ -16,3 +16,5 @@ frontend/node_modules/
 
 # MySQL dumps or backups
 *.sql
+# ...but keep the schema and labelled sample data
+!backend/sql/*.sql
