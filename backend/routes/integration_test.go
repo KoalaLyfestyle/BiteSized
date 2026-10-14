@@ -109,6 +109,27 @@ func TestRecipesAgainstDatabase(t *testing.T) {
 		t.Fatalf("ingredients not stored as sent: %q", one.Ingredients)
 	}
 
+	// Threads: the author comes from the server, never the client (#5).
+	var threads []map[string]any
+	getJSON(t, srv.URL+"/threads", http.StatusOK, &threads)
+	if threads == nil || len(threads) != 0 {
+		t.Fatalf("expected an empty thread list [], got %v", threads)
+	}
+	post(t, srv.URL+"/thread", `{"title":"x","content":"y","user_id":2}`, http.StatusBadRequest, nil)
+	var thread map[string]any
+	post(t, srv.URL+"/thread", `{"title":" Best toast? ","content":"Butter first?"}`, http.StatusCreated, &thread)
+	if thread["title"] != "Best toast?" || thread["user_id"] != float64(1) {
+		t.Fatalf("unexpected created thread %v", thread)
+	}
+	getJSON(t, srv.URL+"/threads", http.StatusOK, &threads)
+	if len(threads) != 1 || threads[0]["user_id"] != float64(1) {
+		t.Fatalf("expected the stored thread with the server author, got %v", threads)
+	}
+	req, _ := http.NewRequest(http.MethodDelete, srv.URL+"/thread/999", nil)
+	if res, err := http.DefaultClient.Do(req); err != nil || res.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected 404 deleting a missing thread, got %v %v", res, err)
+	}
+
 	// Users never carry password hashes.
 	res, err := http.Get(srv.URL + "/users")
 	if err != nil {

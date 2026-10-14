@@ -32,6 +32,9 @@ Winston Ho Rui Wei
 | `POST /api/recipes` | Create. Body: `title` (required, up to 200 characters), `content` (optional, up to 2,000), `ingredients` and `steps` (required, one item per line). Unknown fields such as `user_id` are rejected. Returns 201 with the recipe, 400 with `{"error", "fields"}` when invalid, or 403 when read-only. |
 | `PUT /api/recipes/{id}`, `DELETE /api/recipes/{id}` | Update or delete. Same rules as create. |
 | `GET /api/config` | `{"authoring": true or false}`. |
+| `GET /threads` | All threads, newest first. `[]` when there are none. |
+| `POST /thread` | Create a thread. Body: `title` (required, up to 200 characters) and `content` (required, up to 10,000). Like recipes, the author is set by the server and `user_id` is rejected. Returns 201 with the thread. |
+| `PUT /thread/{id}`, `DELETE /thread/{id}` | Update (title and content only) or delete. 404 when there is no such thread. |
 
 Errors are JSON: `{"error": "...", "fields": {"title": "is required"}}`.
 
