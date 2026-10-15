@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Box, Button, CircularProgress, Grid, TextField, Typography } from '@mui/material';
+import { Alert, Autocomplete, Box, Button, CircularProgress, Grid, TextField, Typography } from '@mui/material';
 import RecipeCard from '../components/RecipeCard';
 import { ApiRecipe, listRecipes, splitLines } from '../services/recipes';
 
@@ -10,6 +10,7 @@ type State =
 
 const Recipes = () => {
   const [search, setSearch] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [state, setState] = useState<State>({ status: 'loading' });
 
   const load = useCallback((isActive: () => boolean = () => true) => {
@@ -27,6 +28,12 @@ const Recipes = () => {
       active = false;
     };
   }, [load]);
+
+  // Filter options: every tag in the loaded recipes, sorted.
+  const allTags =
+    state.status === 'ready'
+      ? Array.from(new Set(state.recipes.flatMap((r) => r.tags ?? []))).sort((a, b) => a.localeCompare(b))
+      : [];
 
   let body: React.ReactNode;
   if (state.status === 'loading') {
@@ -60,10 +67,15 @@ const Recipes = () => {
     );
   } else {
     const query = search.trim().toLowerCase();
-    const shown = state.recipes.filter((r) => r.title.toLowerCase().includes(query));
+    // A recipe matches the tag filter when it has any of the chosen tags.
+    const shown = state.recipes.filter(
+      (r) =>
+        r.title.toLowerCase().includes(query) &&
+        (selectedTags.length === 0 || selectedTags.some((tag) => (r.tags ?? []).includes(tag)))
+    );
     body =
       shown.length === 0 ? (
-        <Typography color="textSecondary">No recipes match "{search}".</Typography>
+        <Typography color="textSecondary">No recipes match these filters.</Typography>
       ) : (
         <Grid container spacing={3}>
           {shown.map((r) => (
@@ -73,6 +85,7 @@ const Recipes = () => {
                 title={r.title}
                 content={r.content}
                 ingredients={splitLines(r.ingredients).join(', ')}
+                tags={r.tags ?? []}
                 steps={`${splitLines(r.steps).length} steps`}
                 userId={r.user_id}
                 createdAt={r.created_at}
@@ -91,6 +104,14 @@ const Recipes = () => {
         fullWidth
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        sx={{ mb: 2 }}
+      />
+      <Autocomplete
+        multiple
+        options={allTags}
+        value={selectedTags}
+        onChange={(_, value) => setSelectedTags(value)}
+        renderInput={(params) => <TextField {...params} label="Filter by tags" />}
         sx={{ mb: 3 }}
       />
       {body}

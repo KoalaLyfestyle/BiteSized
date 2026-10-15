@@ -8,6 +8,7 @@ type Recipe struct {
 	Content     string    `json:"content"`
 	Ingredients string    `json:"ingredients"`
 	Steps       string    `json:"steps"`
+	Tags        []string  `json:"tags"`
 	UserID      int       `json:"user_id,omitempty"`
 	CreatedAt   time.Time `json:"created_at,omitempty"`
 }

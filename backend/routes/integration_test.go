@@ -21,13 +21,14 @@ import (
 )
 
 type recipeJSON struct {
-	ID          int    `json:"id"`
-	Title       string `json:"title"`
-	Content     string `json:"content"`
-	Ingredients string `json:"ingredients"`
-	Steps       string `json:"steps"`
-	UserID      int    `json:"user_id"`
-	CreatedAt   string `json:"created_at"`
+	ID          int      `json:"id"`
+	Title       string   `json:"title"`
+	Content     string   `json:"content"`
+	Ingredients string   `json:"ingredients"`
+	Steps       string   `json:"steps"`
+	Tags        []string `json:"tags"`
+	UserID      int      `json:"user_id"`
+	CreatedAt   string   `json:"created_at"`
 }
 
 func TestRecipesAgainstDatabase(t *testing.T) {
@@ -77,6 +78,9 @@ func TestRecipesAgainstDatabase(t *testing.T) {
 	if one.Title != "[Sample] Garlic fried rice" || !strings.Contains(one.Ingredients, "\n") || one.CreatedAt == "" {
 		t.Fatalf("unexpected detail %+v", one)
 	}
+	if strings.Join(one.Tags, ",") != "Quick" {
+		t.Fatalf("expected the seeded tag Quick on recipe 2, got %v", one.Tags)
+	}
 	getJSON(t, srv.URL+"/api/recipes/999", http.StatusNotFound, nil)
 
 	// Read-only by default.
@@ -107,6 +111,53 @@ func TestRecipesAgainstDatabase(t *testing.T) {
 	getJSON(t, fmt.Sprintf("%s/api/recipes/%d", srv.URL, created.ID), http.StatusOK, &one)
 	if one.Ingredients != "bread\nkaya\nbutter" {
 		t.Fatalf("ingredients not stored as sent: %q", one.Ingredients)
+	}
+	if one.Tags == nil || len(one.Tags) != 0 {
+		t.Fatalf("a recipe created without tags has tags [], got %v", one.Tags)
+	}
+
+	// Tags (#6): a recipe created with two tags lists them after a refresh.
+	// "breakfast" reuses the seeded "Breakfast"; "Kaya" is new.
+	var tagged recipeJSON
+	post(t, srv.URL+"/api/recipes", `{"title":"Kaya eggs","ingredients":"eggs\nkaya","steps":"boil\nserve","tags":["Kaya"," breakfast "]}`, http.StatusCreated, &tagged)
+	if strings.Join(tagged.Tags, ",") != "Breakfast,Kaya" {
+		t.Fatalf("expected tags [Breakfast Kaya] on create, got %v", tagged.Tags)
+	}
+	getJSON(t, srv.URL+"/api/recipes", http.StatusOK, &list)
+	byID := map[int][]string{}
+	for _, r := range list {
+		byID[r.ID] = r.Tags
+	}
+	if strings.Join(byID[tagged.ID], ",") != "Breakfast,Kaya" || strings.Join(byID[3], ",") != "Dinner,Quick" || byID[created.ID] == nil {
+		t.Fatalf("unexpected tags in the list after refresh: %v", byID)
+	}
+	var tagCount int
+	if err := config.DB.QueryRow("SELECT COUNT(*) FROM tags WHERE name IN ('Breakfast', 'Kaya')").Scan(&tagCount); err != nil || tagCount != 2 {
+		t.Fatalf("expected one Breakfast and one Kaya tag row, got %d (%v)", tagCount, err)
+	}
+	post(t, srv.URL+"/api/recipes", `{"title":"x","ingredients":"a","steps":"b","tags":[""]}`, http.StatusBadRequest, nil)
+
+	// Update: omitted tags are kept, a list replaces them, [] clears them.
+	item := fmt.Sprintf("%s/api/recipes/%d", srv.URL, tagged.ID)
+	base := `"title":"Kaya eggs","ingredients":"eggs\nkaya","steps":"boil\nserve"`
+	for _, c := range []struct{ body, want string }{
+		{"{" + base + "}", "Breakfast,Kaya"},
+		{"{" + base + `,"tags":["Quick","Kaya"]}`, "Kaya,Quick"},
+		{"{" + base + `,"tags":[]}`, ""},
+	} {
+		if code := send(t, http.MethodPut, item, c.body); code != http.StatusOK {
+			t.Fatalf("PUT %s: expected 200, got %d", c.body, code)
+		}
+		getJSON(t, item, http.StatusOK, &one)
+		if strings.Join(one.Tags, ",") != c.want {
+			t.Fatalf("PUT %s: expected tags %q, got %v", c.body, c.want, one.Tags)
+		}
+	}
+	if code := send(t, http.MethodPut, srv.URL+"/api/recipes/999", "{"+base+`,"tags":["Quick"]}`); code != http.StatusNotFound {
+		t.Fatalf("expected 404 tagging a missing recipe, got %d", code)
+	}
+	if code := send(t, http.MethodDelete, item, ""); code != http.StatusNoContent {
+		t.Fatalf("expected 204 deleting the tagged recipe, got %d", code)
 	}
 
 	// Threads: the author comes from the server, never the client (#5).

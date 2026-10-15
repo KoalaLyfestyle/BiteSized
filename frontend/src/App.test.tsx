@@ -25,6 +25,7 @@ const sample = {
   content: 'No-cook breakfast',
   ingredients: 'oats\nmilk',
   steps: 'Mix\nChill overnight',
+  tags: ['Breakfast'],
   user_id: 1,
   created_at: '2026-10-13T00:00:00Z',
 };
@@ -107,6 +108,25 @@ test('switching recipes ignores a late reply for the old one', async () => {
   expect(screen.getByRole('heading', { name: 'Second' })).toBeInTheDocument();
 });
 
+test('recipe list filters by tag', async () => {
+  const dinner = { ...sample, id: 2, title: 'Fried rice', tags: ['Dinner', 'Quick'] };
+  const plain = { ...sample, id: 3, title: 'Plain rice', tags: [] };
+  mockFetch(() => ({ status: 200, body: [sample, dinner, plain] }));
+  render(<App />);
+  expect(await screen.findByText('Fried rice')).toBeInTheDocument();
+  expect(screen.getByText('Quick')).toBeInTheDocument(); // tag chip on the card
+
+  const filter = screen.getByLabelText('Filter by tags');
+  fireEvent.mouseDown(filter);
+  // Options are the tags of the loaded recipes, sorted.
+  expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['Breakfast', 'Dinner', 'Quick']);
+  fireEvent.click(screen.getByRole('option', { name: 'Dinner' }));
+
+  expect(screen.getByText('Fried rice')).toBeInTheDocument();
+  expect(screen.queryByText('[Sample] Overnight oats')).not.toBeInTheDocument();
+  expect(screen.queryByText('Plain rice')).not.toBeInTheDocument();
+});
+
 describe('create form', () => {
   beforeEach(() => goTo('#/recipes/new'));
 
@@ -156,8 +176,53 @@ describe('create form', () => {
       content: '',
       ingredients: 'bread\nbutter',
       steps: 'Toast it',
+      tags: [],
     });
     await waitFor(() => expect(window.location.hash).toBe('#/recipes/5'));
+  });
+
+  test('sends tags without blanks or duplicates, including one still being typed', async () => {
+    const fetch = mockFetch((url, init) => {
+      if (url === '/api/config') return { status: 200, body: { authoring: true } };
+      return { status: 201, body: { ...sample, id: 7 } };
+    });
+    render(<App />);
+    const post = await screen.findByRole('button', { name: 'Post Recipe' });
+    await waitFor(() => expect(post).toBeEnabled());
+    fireEvent.change(screen.getByLabelText(/Recipe Title/), { target: { value: 'Toast' } });
+    fireEvent.change(screen.getByLabelText('Ingredient'), { target: { value: 'bread' } });
+    fireEvent.change(screen.getByLabelText('Steps'), { target: { value: 'Toast it' } });
+
+    const tags = screen.getByLabelText('Tags');
+    for (const tag of ['Quick', ' quick ']) {
+      fireEvent.change(tags, { target: { value: tag } });
+      fireEvent.keyDown(tags, { key: 'Enter' });
+    }
+    fireEvent.change(tags, { target: { value: 'Kaya' } });
+    fireEvent.blur(tags); // typed but not entered: kept on leaving the field
+    await act(async () => {
+      fireEvent.click(post);
+    });
+    const call = fetch.mock.calls.find(([, init]) => init?.method === 'POST')!;
+    expect(JSON.parse(String(call[1]!.body)).tags).toEqual(['Quick', 'Kaya']);
+  });
+
+  test('blocks more than 10 tags without calling the API', async () => {
+    const fetch = mockFetch(() => ({ status: 200, body: { authoring: true } }));
+    render(<App />);
+    const post = await screen.findByRole('button', { name: 'Post Recipe' });
+    await waitFor(() => expect(post).toBeEnabled());
+    fireEvent.change(screen.getByLabelText(/Recipe Title/), { target: { value: 'Toast' } });
+    fireEvent.change(screen.getByLabelText('Ingredient'), { target: { value: 'bread' } });
+    fireEvent.change(screen.getByLabelText('Steps'), { target: { value: 'Toast it' } });
+    const tags = screen.getByLabelText('Tags');
+    for (let i = 1; i <= 11; i++) {
+      fireEvent.change(tags, { target: { value: `tag${i}` } });
+      fireEvent.keyDown(tags, { key: 'Enter' });
+    }
+    fireEvent.click(post);
+    expect(await screen.findByText('Tags must be at most 10')).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(1); // only /api/config
   });
 
   test('keeps an ingredient and step that were typed but not added', async () => {
