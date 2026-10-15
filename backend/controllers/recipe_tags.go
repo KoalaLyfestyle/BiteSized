@@ -3,6 +3,7 @@ package controllers
 import (
 	"bitesized-backend/models"
 	"database/sql"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -23,7 +24,8 @@ type querier interface {
 }
 
 // cleanTags trims each tag, drops case-insensitive duplicates (the tags.name
-// unique index ignores case), and returns a message if the list is invalid.
+// unique index ignores case, and with the usual collations accents too), and
+// returns a message if the list is invalid.
 func cleanTags(tags []string) ([]string, string) {
 	out := []string{}
 	seen := map[string]bool{}
@@ -31,7 +33,7 @@ func cleanTags(tags []string) ([]string, string) {
 		tag = strings.TrimSpace(tag)
 		n := utf8.RuneCountInString(tag)
 		if n == 0 || n > maxTagName {
-			return nil, "each tag must be 1 to " + strconv.Itoa(maxTagName) + " characters"
+			return nil, "must each be 1 to " + strconv.Itoa(maxTagName) + " characters"
 		}
 		key := strings.ToLower(tag)
 		if seen[key] {
@@ -41,7 +43,7 @@ func cleanTags(tags []string) ([]string, string) {
 		out = append(out, tag)
 	}
 	if len(out) > maxTags {
-		return nil, "at most " + strconv.Itoa(maxTags) + " tags"
+		return nil, "must be at most " + strconv.Itoa(maxTags)
 	}
 	return out, ""
 }
@@ -97,11 +99,17 @@ func fetchRecipe(q querier, id int64) (models.Recipe, error) {
 }
 
 // replaceTags makes tags the recipe's whole tag list, creating tags that do
-// not exist yet. A tag that differs only in case reuses the stored one.
+// not exist yet. A name the column's collation treats as equal to a stored
+// one (case, usually accents) reuses that tag; ids are deduped so the
+// recipe_tags primary key never sees the same tag twice.
 func replaceTags(q querier, recipeID int64, tags []string) error {
+	// Upsert in a fixed order so two requests with the same tags in another
+	// order take the unique-index locks in the same order.
+	sorted := append([]string(nil), tags...)
+	sort.Strings(sorted)
 	ids := []int64{}
 	seen := map[int64]bool{}
-	for _, name := range tags {
+	for _, name := range sorted {
 		// LAST_INSERT_ID(id) makes an existing tag report its own id.
 		res, err := q.Exec("INSERT INTO tags (name) VALUES (?) ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)", name)
 		if err != nil {

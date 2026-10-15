@@ -131,9 +131,9 @@ func TestCreateRecipeRejectsInvalidInput(t *testing.T) {
 		{"long title", `{"title":"` + strings.Repeat("t", 201) + `","ingredients":"a","steps":"b"}`, "title", "at most 200"},
 		{"trailing data", validRecipe + ` {"title":"again"}`, "", "single JSON object"},
 		{"client user id", `{"title":"x","ingredients":"a","steps":"b","user_id":5}`, "", `unknown field "user_id"`},
-		{"blank tag", `{"title":"x","ingredients":"a","steps":"b","tags":["ok","  "]}`, "tags", "1 to 50 characters"},
-		{"long tag", `{"title":"x","ingredients":"a","steps":"b","tags":["` + strings.Repeat("t", 51) + `"]}`, "tags", "1 to 50 characters"},
-		{"too many tags", `{"title":"x","ingredients":"a","steps":"b","tags":["a","b","c","d","e","f","g","h","i","j","k"]}`, "tags", "at most 10 tags"},
+		{"blank tag", `{"title":"x","ingredients":"a","steps":"b","tags":["ok","  "]}`, "tags", "must each be 1 to 50 characters"},
+		{"long tag", `{"title":"x","ingredients":"a","steps":"b","tags":["` + strings.Repeat("t", 51) + `"]}`, "tags", "must each be 1 to 50 characters"},
+		{"too many tags", `{"title":"x","ingredients":"a","steps":"b","tags":["a","b","c","d","e","f","g","h","i","j","k"]}`, "tags", "must be at most 10"},
 		{"tags not a list", `{"title":"x","ingredients":"a","steps":"b","tags":"a,b"}`, "", "request body must be a JSON object"},
 	}
 	for _, c := range cases {
@@ -224,6 +224,7 @@ func TestCreateRecipeSavesTags(t *testing.T) {
 	upsert := regexp.QuoteMeta("INSERT INTO tags (name) VALUES (?) ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)")
 	mock.ExpectBegin()
 	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO recipes")).WillReturnResult(sqlmock.NewResult(11, 1))
+	// Upserts run in sorted order ("Kaya" < "breakfast" byte-wise).
 	mock.ExpectExec(upsert).WithArgs("Kaya").WillReturnResult(sqlmock.NewResult(4, 1))
 	mock.ExpectExec(upsert).WithArgs("breakfast").WillReturnResult(sqlmock.NewResult(1, 0)) // existing "Breakfast"
 	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM recipe_tags WHERE recipe_id = ?")).WithArgs(int64(11)).WillReturnResult(sqlmock.NewResult(0, 0))
