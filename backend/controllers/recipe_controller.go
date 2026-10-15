@@ -26,11 +26,14 @@ const (
 
 // RecipeInput is what a client may send to create or update a recipe. It has
 // no user_id: the author always comes from the server (config.AuthorID).
+// Tags is nil when the client leaves it out: an update then keeps the
+// recipe's tags, and [] clears them.
 type RecipeInput struct {
-	Title       string `json:"title"`
-	Content     string `json:"content"`
-	Ingredients string `json:"ingredients"`
-	Steps       string `json:"steps"`
+	Title       string    `json:"title"`
+	Content     string    `json:"content"`
+	Ingredients string    `json:"ingredients"`
+	Steps       string    `json:"steps"`
+	Tags        *[]string `json:"tags"`
 }
 
 // Validate trims the input and returns a message per invalid field.
@@ -53,6 +56,14 @@ func (in *RecipeInput) Validate() map[string]string {
 	check("content", in.Content, false, maxContent)
 	check("ingredients", in.Ingredients, true, maxIngredients)
 	check("steps", in.Steps, true, maxSteps)
+	if in.Tags != nil {
+		tags, msg := cleanTags(*in.Tags)
+		if msg != "" {
+			errs["tags"] = msg
+		} else {
+			in.Tags = &tags
+		}
+	}
 	return errs
 }
 
@@ -119,12 +130,17 @@ func GetRecipes(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Failed to fetch recipes")
 		return
 	}
+	rows.Close()
+	if err := attachTags(config.DB, recipes); err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to fetch recipes")
+		return
+	}
 
 	writeJSON(w, http.StatusOK, recipes)
 }
 
 func GetRecipe(w http.ResponseWriter, r *http.Request, id int) {
-	recipe, err := scanRecipe(config.DB.QueryRow("SELECT "+recipeColumns+" FROM recipes WHERE id = ?", id))
+	recipe, err := fetchRecipe(config.DB, int64(id))
 	if errors.Is(err, sql.ErrNoRows) {
 		writeError(w, http.StatusNotFound, "recipe not found")
 		return
@@ -143,7 +159,7 @@ func readRecipeInput(w http.ResponseWriter, r *http.Request) (RecipeInput, bool)
 	dec := json.NewDecoder(io.LimitReader(r.Body, maxRecipeBody))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&in); err != nil {
-		msg := "request body must be a JSON object with title, content, ingredients, and steps"
+		msg := "request body must be a JSON object with title, content, ingredients, steps, and optional tags"
 		if strings.HasPrefix(err.Error(), "json: unknown field") {
 			msg = strings.TrimPrefix(err.Error(), "json: ") + "; the author is set by the server"
 		}
@@ -163,7 +179,7 @@ func readRecipeInput(w http.ResponseWriter, r *http.Request) (RecipeInput, bool)
 
 func requireAuthoring(w http.ResponseWriter) bool {
 	if !config.AuthoringEnabled() {
-		writeError(w, http.StatusForbidden, "this demo is read-only; set AUTHORING_ENABLED=true to add recipes locally")
+		writeError(w, http.StatusForbidden, "this demo is read-only; set AUTHORING_ENABLED=true to write locally")
 		return false
 	}
 	return true
@@ -179,7 +195,13 @@ func CreateRecipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := config.DB.Exec(
+	tx, err := config.DB.Begin()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to create recipe")
+		return
+	}
+	defer tx.Rollback() // no-op after Commit
+	res, err := tx.Exec(
 		"INSERT INTO recipes (title, content, ingredients, steps, user_id) VALUES (?, ?, ?, ?, ?)",
 		in.Title, in.Content, in.Ingredients, in.Steps, config.AuthorID(),
 	)
@@ -192,8 +214,18 @@ func CreateRecipe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Failed to create recipe")
 		return
 	}
+	if in.Tags != nil && len(*in.Tags) > 0 {
+		if err := replaceTags(tx, id, *in.Tags); err != nil {
+			writeError(w, http.StatusInternalServerError, "Failed to save recipe tags")
+			return
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to create recipe")
+		return
+	}
 
-	recipe, err := scanRecipe(config.DB.QueryRow("SELECT "+recipeColumns+" FROM recipes WHERE id = ?", id))
+	recipe, err := fetchRecipe(config.DB, id)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Recipe created but could not be read back")
 		return
@@ -212,7 +244,13 @@ func UpdateRecipe(w http.ResponseWriter, r *http.Request, id int) {
 		return
 	}
 
-	res, err := config.DB.Exec(
+	tx, err := config.DB.Begin()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to update recipe")
+		return
+	}
+	defer tx.Rollback() // no-op after Commit
+	res, err := tx.Exec(
 		"UPDATE recipes SET title = ?, content = ?, ingredients = ?, steps = ? WHERE id = ?",
 		in.Title, in.Content, in.Ingredients, in.Steps, id,
 	)
@@ -223,10 +261,20 @@ func UpdateRecipe(w http.ResponseWriter, r *http.Request, id int) {
 	if n, err := res.RowsAffected(); err == nil && n == 0 {
 		// MySQL reports 0 rows when nothing changed, so check the recipe exists.
 		var exists int
-		if err := config.DB.QueryRow("SELECT 1 FROM recipes WHERE id = ?", id).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
+		if err := tx.QueryRow("SELECT 1 FROM recipes WHERE id = ?", id).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "recipe not found")
 			return
 		}
+	}
+	if in.Tags != nil {
+		if err := replaceTags(tx, int64(id), *in.Tags); err != nil {
+			writeError(w, http.StatusInternalServerError, "Failed to save recipe tags")
+			return
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to update recipe")
+		return
 	}
 	GetRecipe(w, r, id)
 }
