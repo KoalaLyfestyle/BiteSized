@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Box, TextField, Button, List, ListItem, ListItemText, IconButton, Typography } from '@mui/material';
+import { Alert, Autocomplete, Box, TextField, Button, List, ListItem, ListItemText, IconButton, Typography } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { ApiError, FieldErrors, RecipeInput, createRecipe, getAppConfig, validateRecipe } from '../services/recipes';
+import { ApiError, FieldErrors, RecipeInput, cleanTags, createRecipe, getAppConfig, validateRecipe } from '../services/recipes';
 import { navigate } from '../utils/useHashRoute';
 
 const PostRecipe = () => {
@@ -11,6 +11,7 @@ const [ingredient, setIngredient] = React.useState('');
 const [ingredients, setIngredients] = React.useState<string[]>([]);
 const [step, setStep] = React.useState('');
 const [steps, setSteps] = React.useState<string[]>([]);
+const [tags, setTags] = useState<string[]>([]);
 
 const [authoring, setAuthoring] = useState<boolean | null>(null);
 const [errors, setErrors] = useState<FieldErrors>({});
@@ -35,6 +36,7 @@ const handleSubmit = async () => {
     content: description,
     ingredients: allIngredients.join('\n'),
     steps: allSteps.join('\n'),
+    tags: cleanTags(tags),
     };
     const found = validateRecipe(input);
     setErrors(found);
@@ -56,7 +58,7 @@ const handleSubmit = async () => {
     }
 };
 
-const fieldLabel = { title: 'Title', content: 'Description', ingredients: 'Ingredients', steps: 'Steps' };
+const fieldLabel = { title: 'Title', content: 'Description', ingredients: 'Ingredients', steps: 'Steps', tags: 'Tags' };
 const errorText = (field: keyof RecipeInput) => (errors[field] ? `${fieldLabel[field]} ${errors[field]}` : undefined);
 
 if (authoring === false) {
@@ -108,6 +110,23 @@ return (
             onChange={(e) => setTitle(e.target.value)}
             error={!!errors.title}
             helperText={errorText('title')}
+            sx={{ mb: 2 }}
+        />
+        <Autocomplete // Tags: type one and press Enter; a typed tag is kept on leaving the field
+            multiple
+            freeSolo
+            autoSelect
+            options={[]}
+            value={tags}
+            onChange={(_, value) => setTags(cleanTags(value))}
+            renderInput={(params) => (
+            <TextField
+                {...params}
+                label="Tags"
+                error={!!errors.tags}
+                helperText={errorText('tags') ?? 'Press Enter after each tag'}
+            />
+            )}
             sx={{ mb: 2 }}
         />
         <Box sx={{ position: "relative", mb: 2 }}>
