@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Link } from '@mui/material';
+import { Box, GlobalStyles, Typography, Link } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Header from './components/Header';
@@ -7,6 +7,7 @@ import Recipes from './pages/Recipes';
 import RecipeDetail from './pages/RecipeDetail';
 import PostRecipe from './pages/PostRecipe';
 import theme from './styles/theme';
+import { cssVariables } from './styles/tokens';
 import { useHashRoute } from './utils/useHashRoute';
 
 function App() {
@@ -35,8 +36,9 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <GlobalStyles styles={{ ':root': cssVariables() }} />
       <Header />
-      {page}
+      <main>{page}</main>
     </ThemeProvider>
   );
 }

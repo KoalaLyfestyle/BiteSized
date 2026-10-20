@@ -1,13 +1,20 @@
+/* Colours, fonts, and radii come from src/styles/tokens.ts as --bs-* variables
+   (set on :root by App). Keep this file to resets that MUI does not cover. */
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: var(--bs-dough, #f1dfc4);
+}
+
+:focus-visible {
+  outline: 3px solid var(--bs-tomato, #b8432b);
+  outline-offset: 2px;
 }
