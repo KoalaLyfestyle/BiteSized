@@ -1,148 +1,100 @@
-# BiteSized
-Submission for CVWO AY2024/25 - Gossip with Go/Rails
+<p align="center">
+  <img src="frontend/public/logo192.png" alt="" width="96" height="96" />
+</p>
 
-Winston Ho Rui Wei
+<h1 align="center">BiteSized</h1>
 
-## Setup Instructions
+<p align="center"><strong>Status: prototype.</strong> Recipes, tags, and posting work end to end. There are no user accounts yet, so the server is read-only by default.</p>
 
-1. Clone the repository.
-2. Install MySQL (or MariaDB), Go, Node.js, and yarn.
-3. Create an empty database and a user that can use it.
-4. Create `backend/.env` with the database details (or set the same variables in your shell):
-    ```
-    DB_USER=xxxxxxxxxxx
-    DB_PASSWORD=xxxxxxx
-    DB_HOST=127.0.0.1
-    DB_PORT=3306
-    DB_NAME=bitesized
-    ```
-5. In `backend/`, run `go mod download`, then `go run . -setup-db`. This creates the tables from `backend/sql/1-schema.sql` and loads the sample recipes from `backend/sql/2-seed.sql`. Sample recipes are titled `[Sample] ...`. Both scripts are safe to run again.
-6. Start the backend with `go run .`. It serves the API on http://localhost:8080.
-    - By default the API is **read-only**: every write returns 403. There is no login yet, so this is the safe default for a shared demo.
-    - To add recipes on your own machine, start it with `AUTHORING_ENABLED=true go run .`. New recipes are saved as the demo user (id 1), or as `AUTHOR_USER_ID` if set. The API never takes the author from the request.
-7. In `frontend/`, run `yarn install`, then `yarn start`. The app opens at http://localhost:3000/ and reaches the API through the dev server proxy (`"proxy"` in `package.json`), so no `frontend/.env` is needed. Set `REACT_APP_API_URL` only if the API is served elsewhere.
-8. Start storybook to view components/pages with `yarn storybook`, storybook should open in your browser at http://localhost:6006/
+BiteSized is a small recipe board. You browse short recipes, narrow them by name or tag, open one to see its ingredients and steps side by side, and post your own when the server runs in authoring mode.
 
-### Recipe API
+![The BiteSized recipe list with three sample recipes, a search box, and a tag filter](docs/media/recipe-list.png)
 
-| Method and path | What it does |
-|---|---|
-| `GET /api/recipes` | All recipes, newest first, each with `tags` (sorted names, `[]` when none). `[]` when there are no recipes. |
-| `GET /api/recipes/{id}` | One recipe, or 404. |
-| `POST /api/recipes` | Create. Body: `title` (required, up to 200 characters), `content` (optional, up to 2,000), `ingredients` and `steps` (required, one item per line), `tags` (optional, up to 10 names of up to 50 characters; missing tags are created, and a name the database's collation treats as equal reuses the stored one: case always, and accents with the usual MySQL and MariaDB defaults). Unknown fields such as `user_id` are rejected. Returns 201 with the recipe, 400 with `{"error", "fields"}` when invalid, or 403 when read-only. |
-| `PUT /api/recipes/{id}`, `DELETE /api/recipes/{id}` | Update or delete. Same rules as create. On update, leaving out `tags` (or sending `null`) keeps the recipe's tags, and `"tags": []` clears them. |
-| `GET /api/config` | `{"authoring": true or false}`. |
-| `GET /threads` | All threads, newest first. `[]` when there are none. |
-| `POST /thread` | Create a thread. Body: `title` (required, up to 200 characters) and `content` (required, up to 10,000). Like recipes, the author is set by the server and `user_id` is rejected. Returns 201 with the thread. |
-| `PUT /thread/{id}`, `DELETE /thread/{id}` | Update (title and content only) or delete. 404 when there is no such thread. |
+## What it does today
 
-Errors are JSON: `{"error": "...", "fields": {"title": "is required"}}`.
+- **Browse and filter.** The recipe list searches by title and filters by any tag. Loading, empty, and error states each have their own screen, with a retry button for errors.
+- **Read a recipe.** Each recipe page shows its tags, an ingredient list, and numbered steps. It works on a phone.
+- **Post a recipe.** The form checks the same limits as the server (title length, up to 10 tags of 50 characters) before it sends anything.
+- **Tags that do not duplicate.** `Breakfast` and `breakfast` map to one tag. The server picks the author, never the request.
+- **Safe by default.** Every write returns 403 unless the backend starts with `AUTHORING_ENABLED=true`.
 
-### Tests
+<p>
+  <img src="docs/media/recipe-page.png" alt="A BiteSized recipe page for tomato egg soup, with ingredients on the left and numbered steps on the right" width="68%" />
+  <img src="docs/media/recipe-page-mobile.png" alt="The same kind of recipe page on a phone" width="27%" />
+</p>
 
-- Backend: `cd backend && go test ./...`
-- Backend against a real database: `cd backend && DB_USER=... DB_PASSWORD=... DB_HOST=127.0.0.1 DB_PORT=3306 go test -tags integration ./routes/`. It creates and drops its own `bitesized_test` database.
-- Frontend: `cd frontend && CI=true yarn test`
+## Quickstart
 
-<br>
+You need MySQL 8 or MariaDB 10.11, Go 1.23 or newer, Node.js, and yarn.
 
-This web forum is still in development. Current progress is as follows:
-
-### Requirements
-
-- [x] Database
-  - [x] Database Schema
-  - [x] Test data for development
-  - [x] Setup database for connection to backend
-
-- [ ] Backend
-  - [x] Create models
-  - [x] Create API routes and controllers to handle GET, PUT, POST, DELETE operations
-  - [ ] User Authentication
-    - [ ] Setup password hashing with bcrypt
-
-- [ ] Frontend
-  - [ ] Design/Create Reuseable Components
-    - [x] Header
-    - [ ] Footer
-    - [x] Recipe Card
-    - [x] Thread Card
-  - [ ] Design/Create Pages
-    - [x] Home Page
-    - [x] Recipe Page
-    - [x] Post Recipe Form
-    - [x] Threads Page
-    - [x] Post Thread Form
-    - [ ] Profile Page
-    - [ ] Log In / Sign Up Page
-  - [ ] Link pages to backend API
-    - [x] Recipe list, recipe page, and post recipe form
-
-### Possible Future Optimizations
-- [ ] Search Engine Improvements
-  - [ ] Search by user
-  - [ ] Search by similar words
-  - [ ] Sort by recent asc/desc
-- [ ] Profile Improvements
-  - [ ] Profile Pictures
-  - [ ] Pinned Recipes/Threads on profile
-
-## File Structure
-
-### Overall
-
-```
-BiteSized/
-├── frontend/                   # Frontend files
-├── backend/                    # Backend files
-├── README.md                   # This file
-├── .gitignore                  # Files to ignore in version control
-└── .gitattributes              # Git attributes for file paths
+```bash
+git clone https://github.com/KoalaLyfestyle/BiteSized.git
+cd BiteSized/backend
+cat > .env <<'EOF'
+DB_USER=your_user
+DB_PASSWORD=your_password
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=bitesized
+EOF
+go mod download
+go run . -setup-db          # prints "Database is ready."
+go run .                    # serves http://localhost:8080, read-only
 ```
 
-### Backend
+In a second terminal:
 
-```
-backend/
-├── config/                     # Configuration files
-├── controllers/                # Handles API logic
-├── models/                     # Models for database tables
-├── routes/                     # API route handlers
-├── sql/                        # SQL-related files
-├── utils/                      # Utility functions/helpers
-├── main.go                     # Entry point for the application
-├── go.mod                      # Go module file
-├── go.sum                      # Go dependencies
-└── .env                        # Environment variables
-
+```bash
+cd BiteSized/frontend
+yarn install --frozen-lockfile
+yarn start                  # opens http://localhost:3000
 ```
 
-### Frontend
+You should see three recipes titled `[Sample] ...`, as in the screenshot above. To post your own, stop the backend and start it with `AUTHORING_ENABLED=true go run .`.
 
-*Note: not all files have been written/are complete, but this is the planned structure*
+More detail: [docs/development.md](docs/development.md) (setup, tests, design system) and [docs/api.md](docs/api.md) (every endpoint).
 
-```
-frontend/
-├── public/                       # Public assets (served directly)
-├── src/                          # Main source code
-│   ├── assets/                   # Static assets (images, icons, etc.)
-│   ├── components/               # Reusable components
-│   │   └── stories/              # Subfolder for stories (Storybook)
-│   ├── pages/                    # Page-level components (screens)
-│   │   └── stories/              # Subfolder for stories (Storybook)
-│   ├── services/                 # API interactions
-│   ├── styles/                   # Custom styles
-│   ├── utils/                    # Utility/helper functions
-│   ├── App.tsx                   # Main app component (routes and layout)
-│   ├── AppRoutes.tsx             # App routes (defined with react-router)
-│   ├── index.tsx                 # App entry point
-│   └── react-app-env.d.ts        # React environment types
-├── .env                          # Environment variables
-├── package.json                  # Project dependencies and scripts
-├── tsconfig.json                 # TypeScript configuration
-├── yarn.lock                     # Yarn lockfile for dependencies
-└── README.md                     # Reach and Yarn quickstart guide
+## How it works
+
+```mermaid
+flowchart LR
+  subgraph Browser
+    UI["React + MUI pages<br/>pages/Recipes, RecipeDetail, PostRecipe"]
+    API["services/recipes.ts<br/>API client and shared limits"]
+    UI --> API
+  end
+  subgraph Go backend
+    R["routes/<br/>URL registration, read-only guard"]
+    C["controllers/<br/>validation, recipe and tag logic"]
+    R --> C
+  end
+  DB[("MySQL or MariaDB<br/>sql/1-schema.sql")]
+  API -- "JSON over /api" --> R
+  C -- "database/sql transactions" --> DB
 ```
 
-## Logo Credits
-The BiteSized logo was created using OpenAI's DALL·E, an AI-based image generation tool.
+The frontend is a Create React App single page app with hash routes (`#/recipes`, `#/recipes/3`), so a refresh never needs server rewrites. It talks to a plain `net/http` Go server. Each recipe write runs in one transaction: the recipe row, then its tags, which are created when missing and linked through `recipe_tags`. Validation limits live in the controllers and are mirrored in `services/recipes.ts`, so the form catches mistakes before the request.
+
+## Results and limits
+
+Checked in this repo's tests:
+
+- 20 frontend tests (`CI=true yarn test --watchAll=false`) cover the list, filters, recipe page, the post form, and the branding files.
+- Go unit tests use `go-sqlmock`. An integration test (`go test -tags integration ./routes/`) runs the recipe and tag flow against a real MySQL or MariaDB database.
+
+Left out on purpose, or not built yet:
+
+- No accounts or login. That is why writes are off by default.
+- Recipes have no photos. Each one gets a colour block with its first letter in the image slot until photos exist.
+- The thread API works, but its pages are not routed.
+- Known bugs are tracked as issues, for example emoji tags collapsing into one tag on MariaDB ([#8](https://github.com/KoalaLyfestyle/BiteSized/issues/8)).
+
+## Design note
+
+**Choice:** the server decides who wrote a recipe. With no login, trusting a `user_id` in the request would let anyone post as anyone. So the API rejects that field, saves new recipes as a configured author, and stays read-only unless you turn authoring on for your own machine.
+
+**Cut:** user accounts with bcrypt password hashing were planned for the original CVWO brief and never finished. Rather than ship half an auth system, the app keeps writes local.
+
+## Credits
+
+Built by Winston Ho Rui Wei, first as a CVWO AY2024/25 submission. The cookie logo was made with OpenAI's DALL·E.
