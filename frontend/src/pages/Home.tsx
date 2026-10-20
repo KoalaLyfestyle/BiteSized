@@ -85,7 +85,11 @@ const Home = () => {
           {filteredItems.map(item => (
             <Grid item xs={12} sm={6} md={4} key={item.id}>
               {isRecipe(item) ? (
-                <RecipeCard {...item} />
+                <RecipeCard
+                  {...item}
+                  ingredientCount={item.ingredients.split('\n').filter(Boolean).length}
+                  stepCount={item.steps.split('\n').filter(Boolean).length}
+                />
               ) : (
                 <ThreadCard {...item} />
               )}

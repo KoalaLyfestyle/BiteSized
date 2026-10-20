@@ -20,8 +20,9 @@ Default.args = {
   id: 1,
   title: "Sample Recipe Title",
   content: "This is a sample content for the recipe.",
-  ingredients: "Sample ingredients",
-  steps: "Sample steps",
+  ingredientCount: 5,
+  stepCount: 3,
+  tags: ["Breakfast", "Quick"],
   userId: 123,
   createdAt: new Date().toISOString(),
 };
