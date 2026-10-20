@@ -80,7 +80,16 @@ test('detail page lists ingredients and steps', async () => {
   expect(await screen.findByRole('heading', { name: '[Sample] Overnight oats' })).toBeInTheDocument();
   expect(screen.getByText('milk')).toBeInTheDocument();
   expect(screen.getByText('Chill overnight')).toBeInTheDocument();
+  expect(screen.getByTestId('recipe-tags')).toHaveTextContent('Breakfast');
   expect(fetch).toHaveBeenCalledWith('/api/recipes/1', expect.anything());
+});
+
+test('detail page shows no tag row when the recipe has no tags', async () => {
+  goTo('#/recipes/3');
+  mockFetch(() => ({ status: 200, body: { ...sample, id: 3, tags: [] } }));
+  render(<App />);
+  expect(await screen.findByRole('heading', { name: '[Sample] Overnight oats' })).toBeInTheDocument();
+  expect(screen.queryByTestId('recipe-tags')).not.toBeInTheDocument();
 });
 
 test('detail page handles a missing recipe', async () => {

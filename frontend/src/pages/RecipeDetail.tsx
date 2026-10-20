@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Box, Button, CircularProgress, Link, Typography } from '@mui/material';
+import { Alert, Box, Button, Chip, CircularProgress, Link, Typography } from '@mui/material';
 import { ApiError, ApiRecipe, getRecipe, splitLines } from '../services/recipes';
 
 type State =
@@ -58,6 +58,13 @@ const RecipeDetail = ({ id }: { id: number }) => {
         <Typography variant="h4" component="h1" gutterBottom>
           {r.title}
         </Typography>
+        {r.tags.length > 0 && (
+          <Box data-testid="recipe-tags" sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+            {r.tags.map((tag) => (
+              <Chip key={tag} label={tag} size="small" />
+            ))}
+          </Box>
+        )}
         <Typography variant="caption" color="textSecondary">
           Posted by User {r.user_id} on {new Date(r.created_at).toLocaleDateString()}
         </Typography>
