@@ -15,6 +15,6 @@ code {
 }
 
 :focus-visible {
-  outline: 3px solid var(--bs-tomato, #d4553a);
+  outline: 3px solid var(--bs-tomato, #b8432b);
   outline-offset: 2px;
 }

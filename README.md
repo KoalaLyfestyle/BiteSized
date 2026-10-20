@@ -25,12 +25,12 @@ BiteSized is a small recipe board. You browse short recipes, narrow them by name
 
 ## Quickstart
 
-You need MySQL or MariaDB, Go 1.23.4 or newer, Node.js, and yarn. Create an empty database and a user for it first, for example:
+You need MySQL or MariaDB, Go 1.23.4 or newer, Node.js, and yarn. Create an empty database and a user for it first, for example in `mysql -u root -p`:
 
 ```sql
 CREATE DATABASE bitesized;
-CREATE USER 'your_user'@'localhost' IDENTIFIED BY 'your_password';
-GRANT ALL ON bitesized.* TO 'your_user'@'localhost';
+CREATE USER 'your_user'@'127.0.0.1' IDENTIFIED BY 'your_password';
+GRANT ALL ON bitesized.* TO 'your_user'@'127.0.0.1';
 ```
 
 Then:
