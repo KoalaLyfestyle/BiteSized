@@ -21,7 +21,7 @@ const Header: React.FC = () => {
       }}
     >
       <Container maxWidth="lg" disableGutters>
-        <Toolbar sx={{ gap: 2, minHeight: { xs: 60, sm: 68 } }}>
+        <Toolbar sx={{ gap: { xs: 1, sm: 2 }, minHeight: { xs: 60, sm: 68 } }}>
           <Link
             href="#/recipes"
             underline="none"
@@ -31,7 +31,7 @@ const Header: React.FC = () => {
             <img src={logo} alt="" width={36} height={36} />
             <Typography
               component="span"
-              sx={{ fontFamily: 'var(--bs-font-display)', fontWeight: 700, fontSize: 24, letterSpacing: '-0.02em' }}
+              sx={{ fontFamily: 'var(--bs-font-display)', fontWeight: 700, fontSize: { xs: 21, sm: 24 }, letterSpacing: '-0.02em' }}
             >
               Bite<Box component="span" sx={{ color: 'primary.main' }}>Sized</Box>
             </Typography>
@@ -41,7 +41,7 @@ const Header: React.FC = () => {
               href="#/recipes"
               color="inherit"
               aria-current={onList ? 'page' : undefined}
-              sx={{ fontWeight: onList ? 700 : 500 }}
+              sx={{ fontWeight: onList ? 700 : 500, display: { xs: 'none', sm: 'inline-flex' } }}
             >
               Recipes
             </Button>
@@ -51,6 +51,7 @@ const Header: React.FC = () => {
               color="secondary"
               startIcon={<AddRoundedIcon />}
               aria-current={route.page === 'new-recipe' ? 'page' : undefined}
+              sx={{ whiteSpace: 'nowrap' }}
             >
               Add recipe
             </Button>
