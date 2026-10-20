@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Box, Button, Chip, Link, Skeleton, Typography } from '@mui/material';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import RecipeArt from '../components/RecipeArt';
+import { plural } from '../components/RecipeCard';
 import { ApiError, ApiRecipe, getRecipe, splitLines } from '../services/recipes';
 
 type State =
@@ -84,7 +85,7 @@ const RecipeDetail = ({ id }: { id: number }) => {
             </Typography>
           )}
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
-            {ingredients.length} ingredients · {steps.length} steps · Posted by User {r.user_id} on{' '}
+            {plural(ingredients.length, 'ingredient')} · {plural(steps.length, 'step')} · Posted by User {r.user_id} on{' '}
             {new Date(r.created_at).toLocaleDateString()}
           </Typography>
         </Box>

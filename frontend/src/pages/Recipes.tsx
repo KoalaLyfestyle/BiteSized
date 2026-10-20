@@ -8,6 +8,7 @@ import {
   CardContent,
   Grid,
   InputAdornment,
+  Link,
   Skeleton,
   TextField,
   Typography,
@@ -108,7 +109,7 @@ const Recipes = () => {
     body = (
       <EmptyState title="No recipes yet">
         Run <code>go run . -setup-db</code> in the backend to load sample recipes, or{' '}
-        <a href="#/recipes/new">add your own</a>.
+        <Link href="#/recipes/new">add your own</Link>.
       </EmptyState>
     );
   } else {

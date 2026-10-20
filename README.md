@@ -25,7 +25,15 @@ BiteSized is a small recipe board. You browse short recipes, narrow them by name
 
 ## Quickstart
 
-You need MySQL 8 or MariaDB 10.11, Go 1.23 or newer, Node.js, and yarn.
+You need MySQL or MariaDB, Go 1.23.4 or newer, Node.js, and yarn. Create an empty database and a user for it first, for example:
+
+```sql
+CREATE DATABASE bitesized;
+CREATE USER 'your_user'@'localhost' IDENTIFIED BY 'your_password';
+GRANT ALL ON bitesized.* TO 'your_user'@'localhost';
+```
+
+Then:
 
 ```bash
 git clone https://github.com/KoalaLyfestyle/BiteSized.git
@@ -79,7 +87,7 @@ The frontend is a Create React App single page app with hash routes (`#/recipes`
 
 Checked in this repo's tests:
 
-- 20 frontend tests (`CI=true yarn test --watchAll=false`) cover the list, filters, recipe page, the post form, and the branding files.
+- 28 frontend tests (`CI=true yarn test --watchAll=false`) cover the list, filters, recipe page, the post form, the branding files, and colour contrast.
 - Go unit tests use `go-sqlmock`. An integration test (`go test -tags integration ./routes/`) runs the recipe and tag flow against a real MySQL or MariaDB database.
 
 Left out on purpose, or not built yet:

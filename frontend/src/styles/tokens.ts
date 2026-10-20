@@ -1,17 +1,18 @@
 // BiteSized design tokens. One source for the MUI theme and the CSS variables.
 // The palette takes its colours from the cookie logo: baked dough, chocolate, and a
-// warm tomato accent, with a herb green for tags.
+// warm tomato accent, with a herb green for tags. Every text colour meets WCAG AA
+// (4.5:1) on the background it is used on; src/branding.test.ts checks this.
 
 export const palette = {
   cream: '#FBF5EC', // page background
   paper: '#FFFDF9', // cards and panels
   dough: '#F1DFC4', // soft fills, image slots
-  crust: '#B86B3C', // primary brand colour
-  crustDark: '#8E4E27',
+  crust: '#9A5A2E', // primary brand colour; 5:1 on cream, and under white text
+  crustDark: '#7A4420',
   chocolate: '#3B2416', // body text
   cocoa: '#6E5444', // secondary text
-  tomato: '#D4553A', // calls to action
-  herb: '#5E7D4A', // tags
+  tomato: '#B8432B', // calls to action; 5.4:1 under white text
+  herb: '#4A6639', // tag text; 5.3:1 on herbSoft
   herbSoft: '#E5ECDD',
   line: '#E8DCCB', // borders
 } as const;

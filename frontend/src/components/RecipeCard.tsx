@@ -16,7 +16,7 @@ interface RecipeCardProps {
   href?: string;
 }
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 const RecipeCard: React.FC<RecipeCardProps> = ({
   id,

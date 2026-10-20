@@ -2,7 +2,7 @@
 
 ## Full setup
 
-1. Install MySQL 8 or MariaDB 10.11, Go 1.23 or newer, Node.js (tested with 22), and yarn.
+1. Install MySQL or MariaDB, Go 1.23.4 or newer, Node.js (tested with 22), and yarn.
 2. Create an empty database and a user that can use it.
 3. Create `backend/.env` with the database details (or set the same variables in your shell):
 
@@ -29,7 +29,7 @@
 
 Colours, fonts, and corner radii live in `frontend/src/styles/tokens.ts`. The MUI theme (`styles/theme.ts`) reads them, and `App` publishes them as `--bs-*` CSS variables, so plain CSS can use `var(--bs-crust)`. Fonts are self-hosted from `@fontsource-variable` (Fraunces for headings, Inter for text), so the app makes no font requests to third parties.
 
-The icons in `frontend/public/` are made from `src/assets/icons/logo.png`. `social-preview.png` is the 1200 by 630 image for link previews; set `PUBLIC_URL` to the deployed origin at build time so crawlers get an absolute URL.
+The icons in `frontend/public/` and the header mark `src/assets/icons/logo-mark.png` are made from `src/assets/icons/logo.png`: cropped to the cookie, padded to a square, resized, and reduced to 128 colours. `social-preview.png` is the 1200 by 630 image for link previews; set `PUBLIC_URL` to the deployed origin at build time so crawlers get an absolute URL.
 
 ## File structure
 
