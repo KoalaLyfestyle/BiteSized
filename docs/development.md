@@ -61,3 +61,7 @@ This started as a submission for CVWO AY2024/25 (Gossip with Go/Rails). Progress
 - Done: database schema and sample data, models, CRUD routes, recipe list, recipe page, post recipe form, tags, header, recipe and thread cards.
 - Not done: user accounts and login (password hashing with bcrypt), profile page, footer, and a routed threads page.
 - Ideas from the original plan: search by user or by similar words, sort by date, profile pictures, and pinned recipes.
+
+## Troubleshooting
+
+- `yarn start` fails with `options.allowedHosts[0] should be a non-empty string`: this is a Create React App bug that shows up when `"proxy"` is set and the machine has no LAN address (for example inside some containers). Run `DANGEROUSLY_DISABLE_HOST_CHECK=true yarn start` on your own machine only.
